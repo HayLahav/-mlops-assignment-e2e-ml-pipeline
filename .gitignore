@@ -1,0 +1,19 @@
+__pycache__
+.ruff_cache
+.venv
+.env
+
+/trajectories/
+/trajectory.json
+
+/logs/
+
+mini-swe-agent/
+SWE-bench/
+
+# Local MLflow store (used when MLFLOW_TRACKING_URI is unset).
+/mlruns/
+
+# Keep the committed sample run; ignore real runs (can be large / uploaded to S3).
+/runs/*
+!/runs/sample/

@@ -1,0 +1,92 @@
+# Local production-style deployment: Airflow + MLflow + Postgres.
+#
+#   1. Build the agent/eval image used by the DockerOperator DAG:
+#         docker build -t mlops-assignment:latest .
+#   2. Set HOST_PROJECT_DIR to this repo's ABSOLUTE path on the Docker host
+#      (DockerOperator bind-mounts reference host paths), plus NEBIUS_API_KEY.
+#         export HOST_PROJECT_DIR=$(pwd)
+#   3. docker compose up -d
+#
+# UIs:  Airflow http://localhost:8080   MLflow http://localhost:5000
+# Admin password (standalone): docker compose logs airflow | grep -i password
+#
+# Airflow runs in `standalone` mode (all components in one container) with the
+# LocalExecutor for a compact single-VM deployment. The Docker socket is mounted
+# so the DockerOperator DAG can launch the agent/eval containers, and SWE-bench
+# can spawn its per-instance containers.
+
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+  AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://localhost:8080/execution/
+  # Extra deps installed on container start. Build a custom image for production.
+  _PIP_ADDITIONAL_REQUIREMENTS: >-
+    apache-airflow-providers-docker
+    mlflow boto3 mini-swe-agent swebench
+  # Pipeline integration.
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  MLFLOW_EXPERIMENT_NAME: coding-agent-eval
+  HOST_PROJECT_DIR: ${HOST_PROJECT_DIR:-/opt/airflow}
+  AGENT_IMAGE: ${AGENT_IMAGE:-mlops-assignment:latest}
+  NEBIUS_API_KEY: ${NEBIUS_API_KEY:-}
+  # Object Storage (optional; upload is skipped when S3_BUCKET is empty).
+  S3_BUCKET: ${S3_BUCKET:-}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+  S3_PREFIX: ${S3_PREFIX:-runs}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-north1}
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.2
+    command: >-
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    restart: unless-stopped
+
+  airflow:
+    image: apache/airflow:3.0.2
+    command: standalone
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *airflow-env
+    user: "0:0"  # needed to access the mounted Docker socket
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./pipeline:/opt/airflow/pipeline
+      - ./scripts:/opt/airflow/scripts
+      - ./runs:/opt/airflow/runs
+      - airflow-logs:/opt/airflow/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  mlflow-data:
+  airflow-logs:

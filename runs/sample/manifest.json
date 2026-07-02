@@ -1,0 +1,45 @@
+{
+  "artifacts": {
+    "local_path": "C:\\Users\\hayla\\OneDrive\\\u05e9\u05d5\u05dc\u05d7\u05df \u05d4\u05e2\u05d1\u05d5\u05d3\u05d4\\Nebius_Performence_AI\\H10\\mlops-assignment-e2e-ml-pipeline-main\\runs\\sample",
+    "remote_uri": null
+  },
+  "config": {
+    "cost_limit": 0.0,
+    "dataset_name": "princeton-nlp/SWE-bench_Verified",
+    "model": "nebius/moonshotai/Kimi-K2.6",
+    "split": "test",
+    "subset": "verified",
+    "task_slice": "0:3",
+    "workers": 5
+  },
+  "created_at": "2026-06-30T22:58:06.639768+00:00",
+  "files": {
+    "config": "config.json",
+    "eval_logs": "run-eval/logs",
+    "eval_reports": "run-eval/reports",
+    "metrics": "metrics.json",
+    "predictions": "run-agent/preds.json",
+    "trajectories": "run-agent/trajectories"
+  },
+  "finalized_at": "2026-06-30T22:58:06.762599+00:00",
+  "instance_count": 3,
+  "instances": [
+    "astropy__astropy-12907",
+    "astropy__astropy-13033",
+    "astropy__astropy-13236"
+  ],
+  "metrics": {
+    "completed_instances": 3,
+    "empty_patch_instances": 0,
+    "error_instances": 0,
+    "report_found": true,
+    "resolved_instances": 1,
+    "resolved_rate": 0.3333,
+    "resolved_rate_completed": 0.3333,
+    "submitted_instances": 3,
+    "total_instances": 500,
+    "unresolved_instances": 2
+  },
+  "mlflow_run_id": null,
+  "run_id": "sample"
+}

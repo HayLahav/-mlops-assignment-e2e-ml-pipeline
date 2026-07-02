@@ -1,0 +1,16 @@
+{
+  "agent_config": null,
+  "cost_limit": 0.0,
+  "created_at": "2026-06-30T22:58:06.639768+00:00",
+  "dataset_name": "princeton-nlp/SWE-bench_Verified",
+  "instance_ids": null,
+  "model": "nebius/moonshotai/Kimi-K2.6",
+  "model_slug": "nebius__moonshotai__Kimi-K2.6",
+  "project_root": "C:\\Users\\hayla\\OneDrive\\\u05e9\u05d5\u05dc\u05d7\u05df \u05d4\u05e2\u05d1\u05d5\u05d3\u05d4\\Nebius_Performence_AI\\H10\\mlops-assignment-e2e-ml-pipeline-main",
+  "run_id": "sample",
+  "runs_root": "C:\\Users\\hayla\\OneDrive\\\u05e9\u05d5\u05dc\u05d7\u05df \u05d4\u05e2\u05d1\u05d5\u05d3\u05d4\\Nebius_Performence_AI\\H10\\mlops-assignment-e2e-ml-pipeline-main\\runs",
+  "split": "test",
+  "subset": "verified",
+  "task_slice": "0:3",
+  "workers": 5
+}
