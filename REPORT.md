@@ -134,27 +134,38 @@ Tracking URI comes from `MLFLOW_TRACKING_URI` (the Compose MLflow server, or a
 local `mlruns/` store when unset). Different runs are then directly comparable
 in the MLflow UI.
 
-> Screenshots (`screenshots/airflow_dag.png`, `screenshots/mlflow_runs.png`,
-> `screenshots/object_storage_artifacts.png`) are captured on the Nebius VM —
-> see §6.
+> Screenshots captured on the Nebius VM: `screenshots/airflow_dag.png`
+> (all four tasks succeeded) and `screenshots/mlflow_runs.png` (run with logged
+> params + metrics, `resolved_rate = 1`). Object Storage is optional and was not
+> exercised (`S3_BUCKET` left empty); §3 documents how the upload works.
 
 ---
 
-## 5. One completed run (worked example)
+## 5. One completed run
 
-`runs/sample/` is a real, parsed run built from the provided `sample/` outputs
-using the **same** `pipeline/` helpers the DAG uses (the agent + Docker-based
-eval need Linux + Docker and run on the VM, not on a dev laptop):
+A genuine end-to-end run executed on the Nebius VM through `evaluate_agent_docker`
+(all four tasks green — see `screenshots/airflow_dag.png`). The agent solved the
+task and SWE-bench's tests passed:
+
+`runs/nebius_moonshotai_Kimi-K2.6__verified__test__20260702-185440-6b1536/`
 
 | Metric | Value |
 |---|---|
 | dataset | `princeton-nlp/SWE-bench_Verified` (`test`) |
 | model | `nebius/moonshotai/Kimi-K2.6` |
-| submitted / completed | 3 / 3 |
-| resolved | 1 |
-| **resolved_rate** | **0.333** |
+| instance | `astropy__astropy-12907` |
+| submitted / completed | 1 / 1 |
+| resolved | **1** |
+| **resolved_rate** | **1.0** |
 
-Reproduce it locally:
+The full run folder is committed as evidence (`config.json`, `preds.json` with a
+504-char patch, the agent trajectory, SWE-bench eval logs + `report.json`,
+`metrics.json`, `manifest.json`), and the run is logged to MLflow with all
+params + metrics (`screenshots/mlflow_runs.png`).
+
+`runs/sample/` is a second worked example, built from the provided `sample/`
+outputs with the **same** `pipeline/` helpers (3 instances, 1 resolved →
+`resolved_rate` 0.333). Rebuild it anywhere (pure Python, no Docker):
 
 ```bash
 python scripts/build_sample_run.py   # rebuilds runs/sample/ from sample/
@@ -169,13 +180,28 @@ python scripts/build_sample_run.py   # rebuilds runs/sample/ from sample/
 - **Inspect any past run:** open `runs/<id>/manifest.json`, or pull the S3
   tarball recorded there, or open the MLflow run of the same name.
 
-### Pending on the Nebius VM (Linux + Docker required)
+### VM deployment notes (important)
 
-1. `docker compose up -d`, build `mlops-assignment:latest`, add `NEBIUS_API_KEY`.
-2. Trigger `evaluate_agent_docker` on a small slice (e.g. `task_slice="0:3"`).
-3. Set `S3_BUCKET` + Nebius Object Storage creds to exercise the upload.
-4. Capture `screenshots/airflow_dag.png`, `screenshots/mlflow_runs.png`,
-   `screenshots/object_storage_artifacts.png`.
+The stack was deployed and the pipeline run end-to-end on a Nebius CPU VM
+(8 vCPU / 32 GB / Ubuntu 24.04) via `docker compose up -d` + `scripts/vm-bringup.sh`.
+Two things differ from the "default" Compose and are worth calling out:
+
+- **Airflow 2.10.5, not 3.0.2.** Airflow 3.0.2's new task-execution API
+  repeatedly failed in this single-VM standalone setup — tasks completed their
+  work but the API rejected the XCom push (HTTP 422) and heartbeats timed out,
+  so runs were marked failed. Downgrading to Airflow **2.10.5** (via
+  `Dockerfile.airflow`, built by Compose) resolved it completely; the DAG code
+  is unchanged. This is the single most important fix for reproducing the run.
+- **`mlflow-skinny` in the Airflow image.** Installing full `mlflow` at
+  container start conflicted with Airflow's pinned deps; the Airflow image bakes
+  in `apache-airflow-providers-docker` + `mlflow-skinny` (tracking client only)
+  + `boto3` via `Dockerfile.airflow`, which is lighter and conflict-free.
+- **Docker socket** is mounted into the Airflow container so DockerOperator can
+  launch the agent/eval containers, and both `run_agent` and `run_eval` mount it
+  so mini-swe-agent and SWE-bench can spawn their per-instance containers.
+
+Object Storage (S3) upload was left disabled (`S3_BUCKET` empty); the code path
+is present and documented in §3.
 
 ---
 
