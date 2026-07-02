@@ -102,8 +102,8 @@ def evaluate_agent_docker():
     run_agent = DockerOperator(
         task_id="run_agent",
         image=AGENT_IMAGE,
-        command="bash scripts/mini-swe-bench-batch.sh",
-        mounts=[runs_mount],
+        command='bash -c "bash scripts/mini-swe-bench-batch.sh"',
+        mounts=[runs_mount, docker_sock],
         mount_tmp_dir=False,
         auto_remove="success",
         execution_timeout=timedelta(hours=4),
