@@ -118,6 +118,16 @@ run folder, uploads it to `s3://<bucket>/<prefix>/<run-id>.tar.gz`, records the
 URI in `manifest.json`, and tags the MLflow run with it. When `S3_BUCKET` is
 empty the step is a documented no-op and artifacts remain local.
 
+> **Status: implemented but not exercised on this deployment.** The upload code
+> path (`pipeline/storage.py`), the `.env` template, and the DAG wiring are all
+> in place, so enabling S3 is purely a matter of setting `S3_BUCKET` + keys.
+> It was not run on the Nebius VM because the course project restricts IAM: the
+> account cannot assign a storage role to a service account (the group/role
+> pages return "Access forbidden"), so no working S3 credential could be
+> created. On a project with normal IAM permissions, setting the six `S3_*`
+> vars and re-triggering the DAG uploads the run and logs the `s3://` URI to
+> MLflow — no code changes required.
+
 ---
 
 ## 4. MLflow tracking
